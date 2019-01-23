@@ -49,33 +49,12 @@ class GameInfoController extends AppController {
 		// 执行数据操作
 	}
 
-	public function tenki() {
-        $add = $_GET['add'];
-
-        $data = [
-            'add'=>$add,
-            'tenki'=>'晴转多云'
-        ];
-        echo json_encode($data);
-
-
-        sleep(2);
-
-    }
-
     public function index(){
-
-//        debug($this->request->clientIp());
 
         if ($this->request->is('GET')){
         $page=isset($_GET['page'])?$_GET['page']:1;
         $this->loadModel("GameInfo");
         $itemCount=$this->GameInfo->find('count'); //数据总数
-        // function getPage($page=1){
-        // echo "这里是getpage函数,我要在这里返回显示的最大页数";
-
-
-        //     }
         function getPage($page,$itemCount){
                 //if判断如果当前是首页了的话
                 $itemPerPage=8;
@@ -110,23 +89,128 @@ class GameInfoController extends AppController {
 
                 return $Pagenation;
                 }
-
         }
 
 		$this->set('pagenation', $pagenation = getPage($page,$itemCount));
 		$this->set('gameinfo', $this->GameInfo->find('all', array('limit' => $pagenation['itemPerPage'],  'page' =>$page)));
 
-       
+
             $this->loadModel("Collection");
             $a=$this->Collection->find('list',array(
                 'fields'=>array('id','game_id'),
                 'conditions'=>array('user_id'=>$this->Auth->user("id"))));
-    
-            $this->set('show', $a);
-        
-	}
 
-   public function view($id = null) {
+            $this->set('show', $a);
+
+
+
+        $this->loadModel("Like");
+
+
+
+        $l=$this->Like->find('all');
+     // debug($l);
+
+     //计数 点赞 计数 点赞计数 点赞计数 点赞计数 点赞计数 点赞计数 点赞计数 点赞计数 点赞计数 点赞
+        $b=$this->Like->find('all',array(
+         'fields' =>array('Like.game_id',
+         'count(user_iine) as like_count'
+         )
+        ,
+            'conditions'=>array(
+
+
+                'user_iine'=>'1'
+
+
+            ),
+            'group' => 'game_id'
+        ));
+$gllist=[];
+        foreach ($b as $v) {
+
+ // debug($v);
+$gameId=$v['Like']['game_id'];
+//debug($gameId);
+$likeCount = $v[0]['like_count'];
+//debug($likeCount);
+
+$gllist[$gameId]=$likeCount;
+//debug($gllist);
+        }
+        $this->set('uplike', $gllist);
+
+
+
+
+
+//bad like 计数点踩 计数点踩 计数点踩 计数点踩 计数点踩 计数点踩 计数点踩 计数点踩 计数点踩 计数点踩 计数点踩 计数点踩
+
+$badlike=$this->Like->find('all',array(
+    'fields' =>array('Like.game_id',
+    'count(user_noiine) as nolike_count '
+    )
+   ,
+       'conditions'=>array(
+
+
+           'user_noiine'=>'1'
+
+
+       ),
+       'group' => 'game_id'
+   ));
+//debug($badlike);
+$badlist=[];
+   foreach ($badlike as $badval) {
+
+// debug($$badval);
+$badgameId=$badval['Like']['game_id'];
+//debug($badgameId);
+$badlikeCount = $badval[0]['nolike_count'];
+//debug($badlikeCount);
+
+$badlist[$badgameId]=$badlikeCount;
+
+   }
+   $this->set('dislike', $badlist);
+
+
+
+
+
+
+
+     $c=$this->Like->find('count',array(
+        'conditions'=>array( 'user_noiine'=>'1'
+
+     ),
+
+    ));
+    //debug($c);
+
+    $this->set('downlike', $c);
+        // $c=$this->Like->find('all');
+        //         debug($c);
+
+
+        //拿到数据资源 这是个空的
+//  $db = $this->getDataSource();
+// //debug($db);
+//  //取到所有
+
+// //  App::uses('ConnectionManager', 'Like');
+// // $db = ConnectionManager::getDataSource("index");
+// debug($db);
+// //debug($db->query('Get', array('test')));
+// $db->fetchAll(
+//     'SELECT * from `like` where user_iine=:user_iine',
+//     array('user_iine' => '1')
+// );
+// debug($db);
+        }
+
+    public function view($id = null) {
         if (!$id) {
             throw new NotFoundException(__('Invalid gameinfo'));
         }
@@ -138,8 +222,8 @@ class GameInfoController extends AppController {
         $this->set('gameinfo', $gameinfo);
     }
 
-    public function add() {    
-        if ($this->request->is('post')) { 
+    public function add() {
+        if ($this->request->is('post')) {
             //create模型
             $this->GameInfo->create();
             //遍历平台的数组
@@ -148,7 +232,7 @@ class GameInfoController extends AppController {
             }
             //得到十进制的数字
             $decNum=array_sum($platDecArray);
-            
+
             //debug($this->request->data);
             //$result = $this->request->data;
             //把post的数据set给模型 平台的数值用刚才求出来的数
@@ -163,7 +247,7 @@ class GameInfoController extends AppController {
                'price' => $_POST['data']['GameInfo']['price'],
                 ));
 
-            if ($this->GameInfo->save($result)) { 
+            if ($this->GameInfo->save($result)) {
                 $this->Flash->success(__('成功.'));
                 return $this->redirect(array('action' => 'index'));
             }
@@ -176,7 +260,7 @@ class GameInfoController extends AppController {
         if (!$id) {
             throw new NotFoundException(__('I木有ID可不行哟'));
         }
-        
+
         $GameInfo = $this->GameInfo->findById($id);
         $this->set('a', $GameInfo);
         if (!$GameInfo) {
@@ -190,7 +274,7 @@ class GameInfoController extends AppController {
                 }
                 //得到十进制的数字
                 $decNum=array_sum($platDecArray);
-                
+
                 //debug($this->request->data);
                 //$result = $this->request->data;
                 //把post的数据set给模型 平台的数值用刚才求出来的数
@@ -249,7 +333,7 @@ class GameInfoController extends AppController {
         //debug($this->request->data);
         if($radio==null){
             $this->Flash->error(__('请选择第几张图片'));
-            return $this->redirect(array('action' => 'uploadfile')); 
+            return $this->redirect(array('action' => 'uploadfile'));
         }
         //设置文件名字为空
         $filename = '';
@@ -270,13 +354,13 @@ class GameInfoController extends AppController {
                     imagealphablending($bg, TRUE);
                     imagecopy($bg, $image, 0, 0, 0, 0, imagesx($image), imagesy($image));
                     imagedestroy($image);
-                    $quality = 50; // 0 = worst / smaller file, 100 = better / bigger file 
+                    $quality = 50; // 0 = worst / smaller file, 100 = better / bigger file
                     $filename = 'game_img_'.$id.'_'.$radio.'.jpg';
                     imagejpeg($bg,WWW_ROOT."img/gameInfo/".$filename, $quality);
                     debug(WWW_ROOT."/img/gameInfo");
                     imagedestroy($bg);
                //$houzhui="jpg";
-            
+
         }
         else if($uploadData['type']=='image/jpg'){
             $houzhui="jpg";
@@ -285,12 +369,12 @@ class GameInfoController extends AppController {
             $this->Flash->error(__('请输入正确的图片格式'));
             return $this->redirect(array('action' => 'uploadfile'));
         }
-        
 
-        
 
-        
-        
+
+
+
+
         //如果他的size是0 而且没有报错信息 返回一个
         if ($uploadData['size'] == 0 || $uploadData['error'] !== 0) {
            return false;
@@ -303,7 +387,7 @@ class GameInfoController extends AppController {
           $filename = 'game_img_'.$id.'_'.$radio.'.'.$houzhui;
          //下载路径   WWW_ROOT -- webrootディレクトリ絶対パス DS -- PHPのDIRECTORY_SEPARATORの短縮系。Windowsの場合は\ (バックスラッシュ)、 Linuxの場合は/ (フォーワードスラッシュ)
         $uploadPath = $uploadFolder . DS . $filename;
-        // file_exists 检查文件夹是否存在 
+        // file_exists 检查文件夹是否存在
         if (!file_exists($uploadFolder)) {
             //mkdir() 函数创建目录。
            mkdir($uploadFolder);
@@ -312,14 +396,14 @@ class GameInfoController extends AppController {
         if (!move_uploaded_file($uploadData['tmp_name'], $uploadPath)) {
            return false;
         }
-     
+
         $this->set('image', $filename);
             $this->Flash->success(__('增加了一张新图片'));
              return $this->redirect(array('action' => 'index'));
 
-            
-        
-        
+
+
+
      }
 
      public function uploadfile(){
@@ -327,11 +411,11 @@ class GameInfoController extends AppController {
         $game_info_id=$this->request->query('game_info_id');
         //我存到的给了前台画面 试图
         $this->set('game_info_id',$game_info_id);
-        
-       
-        
+
+
+
      }
-// //imagecreatefrompng() 返回一图像标识符，代表了从给定的文件名取得的图像。 
+// //imagecreatefrompng() 返回一图像标识符，代表了从给定的文件名取得的图像。
 // $image = imagecreatefrompng($filePath);
 // //imagecreatetruecolor — 新建一个真彩色图像 imagesx — 取得图像宽度 imagesy — 取得图像高度
 // $bg = imagecreatetruecolor(imagesx($image), imagesy($image));
@@ -343,7 +427,7 @@ class GameInfoController extends AppController {
 // imagecopy($bg, $image, 0, 0, 0, 0, imagesx($image), imagesy($image));
 // //imagedestroy — 销毁一图像
 // imagedestroy($image);
-// $quality = 50; // 0 = worst / smaller file, 100 = better / bigger file 
+// $quality = 50; // 0 = worst / smaller file, 100 = better / bigger file
 // //imagejpeg — 输出图象到浏览器或文件。
 // imagejpeg($bg, $filePath . ".jpg", $quality);
 // //imagedestroy — 销毁一图像
@@ -391,7 +475,7 @@ class GameInfoController extends AppController {
 //         imagegif($thumbImg, "$thumbDirectory/$imageName");
 //     }
 }
-    
+
 
 
 
